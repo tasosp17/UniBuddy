@@ -1,7 +1,9 @@
 package com.it2021084.unibuddy
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,12 +49,44 @@ class MessageAdapter(private val messageList: List<Message>, private val isGroup
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val currentMessage = messageList[position]
         val formattedTime = formatTimestamp(currentMessage.timestamp)
+        val context = holder.itemView.context
 
         if (holder is SentViewHolder) {
-            holder.sentMessage.text = currentMessage.message
             holder.sentTime.text = formattedTime
+
+            //handle sent message content type
+            when (currentMessage.fileType){
+                "image" -> {
+                    holder.sentMessage.visibility = View.GONE
+                    holder.sentFile.visibility = View.GONE
+                    holder.sentImage.visibility = View.VISIBLE
+
+                    //asynchronously lload the cloudinary image url
+                    Glide.with(context)
+                        .load(currentMessage.fileUrl)
+                        .into(holder.sentImage)
+                }
+                "pdf" -> {
+                    holder.sentMessage.visibility = View.GONE
+                    holder.sentFile.visibility = View.VISIBLE
+                    holder.sentImage.visibility = View.GONE
+                    holder.sentFile.text = currentMessage.message
+
+                    //launch browser or pdf viewer on click
+                    holder.sentFile.setOnClickListener{
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentMessage.fileUrl))
+                        context.startActivity(intent)
+                    }
+
+                }
+                else -> { //standard text
+                    holder.sentImage.visibility = View.GONE
+                    holder.sentFile.visibility = View.GONE
+                    holder.sentMessage.visibility = View.VISIBLE
+                    holder.sentMessage.text = currentMessage.message
+                }
+            }
         } else if (holder is ReceivedViewHolder) {
-            holder.receivedMessage.text = currentMessage.message
             holder.receivedTime.text = formattedTime
             //show groupchat sender name
             if (isGroupchat){
@@ -72,7 +107,37 @@ class MessageAdapter(private val messageList: List<Message>, private val isGroup
             } else {
                 holder.avatar.setImageResource(R.drawable.ic_profile_placeholder)
             }
+            // Handle Received Message Content Type
+            when (currentMessage.fileType) {
+                "image" -> {
+                    holder.receivedMessage.visibility = View.GONE
+                    holder.receivedFile.visibility = View.GONE
+                    holder.receivedImage.visibility = View.VISIBLE
+
+                    Glide.with(context)
+                        .load(currentMessage.fileUrl)
+                        .into(holder.receivedImage)
+                }
+                "pdf" -> {
+                    holder.receivedMessage.visibility = View.GONE
+                    holder.receivedImage.visibility = View.GONE
+                    holder.receivedFile.visibility = View.VISIBLE
+                    holder.receivedFile.text = currentMessage.message // Shows "📄 Sent a PDF Document"
+
+                    holder.receivedFile.setOnClickListener {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentMessage.fileUrl))
+                        context.startActivity(intent)
+                    }
+                }
+                else -> { // standard text
+                    holder.receivedImage.visibility = View.GONE
+                    holder.receivedFile.visibility = View.GONE
+                    holder.receivedMessage.visibility = View.VISIBLE
+                    holder.receivedMessage.text = currentMessage.message
+                }
+            }
         }
+
     }
 
     override fun getItemCount(): Int =messageList.size
@@ -85,6 +150,8 @@ class MessageAdapter(private val messageList: List<Message>, private val isGroup
     inner class SentViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
         val sentMessage: TextView = itemView.findViewById(R.id.tvMessageSent)
         val sentTime: TextView = itemView.findViewById(R.id.tvTimeSent)
+        val sentImage: ImageView = itemView.findViewById(R.id.ivMessageImageSent)
+        val sentFile: TextView = itemView.findViewById(R.id.tvMessageFileSent)
     }
 
     inner class ReceivedViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
@@ -92,6 +159,8 @@ class MessageAdapter(private val messageList: List<Message>, private val isGroup
         val receivedTime: TextView = itemView.findViewById(R.id.tvTimeReceived)
         val avatar: ImageView = itemView.findViewById(R.id.ivAvatar)
         val senderName: TextView = itemView.findViewById(R.id.tvSenderName)
+        val receivedImage: ImageView = itemView.findViewById(R.id.ivMessageImageReceived)
+        val receivedFile: TextView = itemView.findViewById(R.id.tvMessageFileReceived)
     }
 
     fun setReceiverAvatar(base64: String?){

@@ -17,6 +17,10 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.getValue
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ProfileActivity: AppCompatActivity() {
 
@@ -24,6 +28,7 @@ class ProfileActivity: AppCompatActivity() {
     private lateinit var tvUsername: TextView
     private lateinit var tvStatus: TextView
     private lateinit var ivActiveStatus: ImageView
+    private lateinit var tvLastSeenOnCampus: TextView
     private lateinit var btnSendMessage: MaterialButton
     private lateinit var btnBack: ImageButton
 
@@ -44,6 +49,7 @@ class ProfileActivity: AppCompatActivity() {
         tvUsername = findViewById(R.id.tvUserName)
         tvStatus = findViewById(R.id.tvStatus)
         ivActiveStatus = findViewById(R.id.ivActiveStatus)
+        tvLastSeenOnCampus = findViewById(R.id.tvLastSeenOnCampus)
         btnSendMessage = findViewById(R.id.btnSendMessage)
         btnBack = findViewById(R.id.btnBack)
         rvSharedCourses = findViewById(R.id.rvSharedCourses)
@@ -105,6 +111,7 @@ class ProfileActivity: AppCompatActivity() {
             val status = snapshot.child("status").value?.toString() ?: ""
             val isActive = snapshot.child("isActive").getValue(Boolean::class.java) ?: false
             val avatar = snapshot.child("avatar").value?.toString()
+            val lastSeenTimestamp = snapshot.child("lastSeenOnCampus").getValue(Long::class.java) ?: 0L
 
             tvUsername.text = userName
             tvStatus.text = status
@@ -112,6 +119,17 @@ class ProfileActivity: AppCompatActivity() {
             //show active/inactive status
             val activeIcon = if (isActive) R.drawable.status_circle_active else R.drawable.status_circle_inactive
             ivActiveStatus.setImageResource(activeIcon)
+
+            // present campus status
+            if (isActive){
+                tvLastSeenOnCampus.text = "Currently on campus"
+            }else if (lastSeenTimestamp == 0L){
+                tvLastSeenOnCampus.text = "Not seen on campus recently"
+            }else {
+                val sdf = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
+                val formattedDate = sdf.format(Date(lastSeenTimestamp))
+                tvLastSeenOnCampus.text = "Last seen on campus: $formattedDate"
+            }
 
             //load avatar from Base64 if it exists
             if (!avatar.isNullOrEmpty()){

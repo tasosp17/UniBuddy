@@ -124,10 +124,19 @@ class UserProfileActivity : AppCompatActivity() {
         try{
             //decode image from URI
             val inputStream = contentResolver.openInputStream(imageUri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
+            val originalBitmap = BitmapFactory.decodeStream(inputStream)
             inputStream?.close()
-            //resize to max 100x100 px
-            val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 100, 100, true)
+
+            //find the shortest side to make a perfect square
+            val dimension = Math.min(originalBitmap.width, originalBitmap.height)
+            //calculate the starting X and Y to crop from the exact center
+            val startX = (originalBitmap.width - dimension) / 2
+            val startY = (originalBitmap.height - dimension) / 2
+            //create the squared bitmap
+            val squareBitmap = Bitmap.createBitmap(originalBitmap, startX, startY, dimension, dimension)
+            //scale down to 100x100
+            val resizedBitmap = Bitmap.createScaledBitmap(squareBitmap, 100, 100, true)
+
             //convert to Base64 string
             val baos = ByteArrayOutputStream()
             resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos)

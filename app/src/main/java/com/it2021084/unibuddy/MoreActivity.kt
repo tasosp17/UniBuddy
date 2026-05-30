@@ -30,6 +30,7 @@ class MoreActivity : AppCompatActivity() {
     private lateinit var btnCourseSelection: View
     private lateinit var btnSettings: View
     private lateinit var btnBestBuddies: View
+    private lateinit var btnSocialGroups: View
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseDatabase.getInstance("https://uni-buddy-it2021084-default-rtdb.europe-west1.firebasedatabase.app").reference
@@ -43,6 +44,7 @@ class MoreActivity : AppCompatActivity() {
         btnCourseSelection = findViewById(R.id.btnCourseSelection)
         btnSettings = findViewById(R.id.btnSettings)
         btnBestBuddies = findViewById(R.id.btnBestBuddies)
+        btnSocialGroups = findViewById(R.id.btnSocialGroupSelection)
 
         loadUserData()
 
@@ -59,6 +61,11 @@ class MoreActivity : AppCompatActivity() {
 
         btnBestBuddies.setOnClickListener {
             val intent = Intent(this, BestBuddiesActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnSocialGroups.setOnClickListener {
+            val intent = Intent(this, SocialGroupSelectionActivity::class.java)
             startActivity(intent)
         }
 

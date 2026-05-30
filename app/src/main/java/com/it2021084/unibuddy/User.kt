@@ -14,7 +14,9 @@ data class User(
     var ssid: String = "",
     var visibilityMode: Int = 2, //0=none, 1=best buddies, 2=all (default)
     var fcmToken: String = "",
-    var bestBuddies: HashMap<String, Boolean> = HashMap()
+    var bestBuddies: HashMap<String, Boolean> = HashMap(),
+    var lastSeenOnCampus: Long = 0L,
+    var enrolledSocialGroups: HashMap<String, Boolean> = HashMap() //store social groups
 
 
 )

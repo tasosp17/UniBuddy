@@ -18,34 +18,41 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        //check if the user has disabled chat notifications
         val prefs = getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-
-        //check type of message
         val type = message.data["type"] ?: "chat"
+        val title = message.data["title"] ?: "UniBuddy"
+        val body = message.data["body"] ?: ""
 
-        if (type == "chat"){
-            //chat logic
-            val isChatEnabled = prefs.getBoolean("NOTIF_CHAT", true)
-            if (!isChatEnabled) return
+        val senderName = message.data["senderName"] ?: title
+        val senderAvatar = message.data["senderAvatar"] ?: ""
 
-            val title = message.data["title"] ?: "UniBuddy"
-            val body = message.data["body"] ?: "New Message"
-            val chatId = message.data["chatId"]
-            showChatNotification(title, body, chatId)
-        } else if (type == "status"){
-            //status logic
-            val isChatEnabled = prefs.getBoolean("NOTIF_CHAT", true)
-            if (!isChatEnabled) return
+        when (type) {
+            "chat" -> {
+                val isChatEnabled = prefs.getBoolean("NOTIF_CHAT", true)
+                if(!isChatEnabled) return
 
-            // If I am NOT at school (isActive == false), ignore this notification.
-            val amIActive = prefs.getBoolean("AM_I_ACTIVE", false)
-            if (!amIActive) return
+                val chatId = message.data["chatId"] ?: ""
 
-            val title = message.data["title"] ?: "UniBuddy"
-            val body = message.data["body"] ?: "is now online!"
-            val userId = message.data["userId"]
-            showStatusNotification(title, body, userId)
+                // Show the visual popup overlay layout
+                showChatNotification(senderName, body, chatId)
+
+                // Database logging manager call removed to prevent duplicate entries
+            }
+            "status" -> {
+                val isChatEnabled = prefs.getBoolean("NOTIF_CHAT", true)
+                if (!isChatEnabled) return
+
+                val amIActive = prefs.getBoolean("AM_I_ACTIVE", false)
+                if (!amIActive) return
+
+                val userId = message.data["userId"] ?: ""
+                showStatusNotification(senderName, body, userId)
+            }
+            "broadcast" -> {
+                showBroadcastNotification(title, body)
+
+                // Database logging manager call removed to prevent duplicate entries
+            }
         }
     }
 
@@ -57,76 +64,50 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
         }
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
+        buildNotificationWindow(title, body, "chat_notifications", "Chat Messages", pendingIntent)
+    }
 
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
-        )
+    private fun showStatusNotification(title: String, body: String, userId: String?) {
+        val intent = Intent(this, ProfileActivity::class.java).apply {
+            if (userId != null) putExtra("userId", userId)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
+        buildNotificationWindow(title, body, "status_notifications", "Online Status Updates", pendingIntent)
+    }
 
-        val channelId = "chat_notifications"
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private fun showBroadcastNotification(title: String, body: String){
+        val intent = Intent(this, BroadcastViewActivity::class.java).apply{
+            putExtra("broadcast_body", body)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
+        buildNotificationWindow(title, body, "secretary_broadcasts", "Official Announcements", pendingIntent)
+    }
 
-        //create channel for android O+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId, "Chat Messages", NotificationManager.IMPORTANCE_HIGH
-            )
+    private fun buildNotificationWindow(title: String, body: String, channelId: String, channelName: String, pendingIntent: PendingIntent){
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH)
             notificationManager.createNotificationChannel(channel)
         }
-
-        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+        val builder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.mipmap.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 
-        notificationManager.notify(Random().nextInt(), notificationBuilder.build())
+        notificationManager.notify(Random().nextInt(), builder.build())
     }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-
-        //if the user is currently logged in, update the token in the database immediately
         val currentUid = FirebaseAuth.getInstance().uid
-
         if (currentUid != null){
-            val dbRef = FirebaseDatabase.getInstance().reference
-            dbRef.child("users").child(currentUid).child("fcmToken").setValue(token)
+            FirebaseDatabase.getInstance("https://uni-buddy-it2021084-default-rtdb.europe-west1.firebasedatabase.app")
+                .reference.child("users").child(currentUid).child("fcmToken").setValue(token)
         }
-    }
-
-    private fun showStatusNotification(title: String, body: String, userId: String?){
-        //tap action: open user's profile
-        val intent = Intent(this, ProfileActivity::class.java).apply{
-            if (userId != null){
-                putExtra("userId", userId)
-            }
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val channelId = "status_notifications"
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            val channel = NotificationChannel(
-                channelId, "Online Status Updates", NotificationManager.IMPORTANCE_DEFAULT
-            )
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher_foreground)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-
-        notificationManager.notify(Random().nextInt(), notificationBuilder.build())
     }
 }

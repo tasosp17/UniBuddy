@@ -76,19 +76,7 @@ class NewChatFragment : Fragment() {
         }
 
         btnBack.setOnClickListener {
-            requireActivity().supportFragmentManager.popBackStack()
-            // restore BottomNavigationView
-            val bottomNav = requireActivity().findViewById<BottomNavigationView>(R.id.bottomNavigationView)
-            bottomNav.visibility = View.VISIBLE
-            bottomNav.isEnabled = true
-
-            //restore new chat button
-            val fab = requireActivity().findViewById<View>(R.id.fabNewMessage)
-            fab.visibility = View.VISIBLE
-
-            // hide fragment container if needed
-            val container = requireActivity().findViewById<FrameLayout>(R.id.fragmentContainer)
-            container.visibility = View.GONE
+            requireActivity().onBackPressedDispatcher.onBackPressed()
 
         }
 

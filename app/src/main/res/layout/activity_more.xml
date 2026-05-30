@@ -13,7 +13,7 @@
         android:layout_height="348dp"
         android:adjustViewBounds="true"
         android:alpha="0.9"
-        android:background="@color/purple_200"
+        android:background="#B87019"
         android:scaleType="centerCrop"
         android:src="@drawable/paint"
         app:layout_constraintEnd_toEndOf="parent"
@@ -68,7 +68,7 @@
         android:focusable="true"
         app:cardElevation="4dp"
         app:cardCornerRadius="20dp"
-        app:rippleColor="@color/purple_200"
+        app:rippleColor="#B87019"
         app:layout_constraintTop_toBottomOf="@+id/tvHead"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -136,7 +136,7 @@
             app:cardBackgroundColor="#FFFFFF"
             app:cardElevation="2dp"
             app:cardCornerRadius="16dp"
-            app:rippleColor="@color/purple_200">
+            app:rippleColor="#B87019">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -150,7 +150,7 @@
                     android:layout_width="28dp"
                     android:layout_height="28dp"
                     android:src="@drawable/ic_course_selection"
-                    app:tint="@color/purple_200"/>
+                    app:tint="#B87019"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -180,7 +180,7 @@
             app:cardBackgroundColor="#FFFFFF"
             app:cardElevation="2dp"
             app:cardCornerRadius="16dp"
-            app:rippleColor="@color/purple_200">
+            app:rippleColor="#B87019">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -194,7 +194,7 @@
                     android:layout_width="28dp"
                     android:layout_height="28dp"
                     android:src="@drawable/ic_best_buddies"
-                    app:tint="@color/purple_200"/>
+                    app:tint="#B87019"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -202,6 +202,50 @@
                     android:layout_weight="1"
                     android:layout_marginStart="20dp"
                     android:text="Best Buddies"
+                    android:textSize="16sp"
+                    android:textColor="#333333"
+                    android:fontFamily="@font/poppins_semibold"/>
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="#CCCCCC"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnSocialGroupSelection"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:layout_marginBottom="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardElevation="2dp"
+            app:cardCornerRadius="16dp"
+            app:rippleColor="#B87019">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_social_groups"
+                    app:tint="#B87019"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="20dp"
+                    android:text="Social Groups"
                     android:textSize="16sp"
                     android:textColor="#333333"
                     android:fontFamily="@font/poppins_semibold"/>
@@ -224,7 +268,7 @@
             app:cardBackgroundColor="#FFFFFF"
             app:cardElevation="2dp"
             app:cardCornerRadius="16dp"
-            app:rippleColor="@color/purple_200">
+            app:rippleColor="#B87019">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -238,7 +282,7 @@
                     android:layout_width="28dp"
                     android:layout_height="28dp"
                     android:src="@drawable/ic_settings"
-                    app:tint="@color/purple_200"/>
+                    app:tint="#B87019"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -285,7 +329,7 @@
         app:backgroundTint="@null"
         app:itemIconTint="@color/nav_item_color"
         app:itemTextColor="@color/nav_item_color"
-        app:itemRippleColor="@color/purple_200"
+        app:itemRippleColor="#B87019"
         app:labelVisibilityMode="labeled"
         app:itemTextAppearanceActive="@style/NavTextStyle"
         app:itemTextAppearanceInactive="@style/NavTextStyle"

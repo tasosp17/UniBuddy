@@ -49,15 +49,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rvUsers: RecyclerView
     private lateinit var sliderVisibility: Slider
     private lateinit var tvVisibilityLabel: TextView
-    private lateinit var rvUpcoming: RecyclerView
-    private lateinit var tvNoCourses: TextView
+    private lateinit var btnUpcomingLectures: View
+    private lateinit var btnNotifications: View
 
     // Data
     private lateinit var db: DatabaseReference
     private val userList  = mutableListOf<User>()
     private lateinit var adapter: UserAdapter
-    private val upcomingList = mutableListOf<UpcomingLectureItem>()
-    private lateinit var upcomingAdapter: UpcomingLecturesAdapter
 
     // Logic Variables
     private var wasOnline = false //prevent spamming if wifi flickers
@@ -85,8 +83,8 @@ class MainActivity : AppCompatActivity() {
         sliderVisibility = findViewById(R.id.sliderVisibility)
         tvVisibilityLabel = findViewById(R.id.tvVisibilityLabel)
         rvUsers = findViewById(R.id.rvUsers)
-        rvUpcoming = findViewById(R.id.rvUpcomingLectures)
-        tvNoCourses = findViewById(R.id.tvNoCourses)
+        btnNotifications = findViewById(R.id.btnNotifications)
+        btnUpcomingLectures = findViewById(R.id.btnUpcomingLectures)
 
         //setup slider immediately so we don't wait for firebase
         sliderVisibility.value = visibilityMode.toFloat()
@@ -113,10 +111,6 @@ class MainActivity : AppCompatActivity() {
      //   val divider = DividerItemDecoration(this, DividerItemDecoration.VERTICAL)
         // rvUsers.addItemDecoration(divider)
 
-        // upcoming lectures recyclerview
-        upcomingAdapter = UpcomingLecturesAdapter(upcomingList)
-        rvUpcoming.layoutManager = LinearLayoutManager(this)
-        rvUpcoming.adapter = upcomingAdapter
 
         db = FirebaseDatabase.getInstance("https://uni-buddy-it2021084-default-rtdb.europe-west1.firebasedatabase.app").getReference("users")
 
@@ -125,6 +119,11 @@ class MainActivity : AppCompatActivity() {
         if (currentUid != null){
             db.child(currentUid).child("isActive").onDisconnect().setValue(false)
             db.child(currentUid).get().addOnSuccessListener { snapshot ->
+
+                //get online status
+                val serverIsActive = snapshot.child("isActive").getValue(Boolean::class.java) ?: false
+                wasOnline = serverIsActive
+
                 //fetch ssid
                 val serverSsid = snapshot.child("ssid").value?.toString() ?: ""
                 if (serverSsid.isNotEmpty()) mySsid = serverSsid
@@ -162,8 +161,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupBottomNav()
-        loadUpcomingLectures()
         updateVisibilityLabel() //for initial text
+
+        btnNotifications.setOnClickListener {
+            intent = Intent(this, NotificationsListActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnUpcomingLectures.setOnClickListener {
+            intent = Intent(this, UpcomingLecturesActivity::class.java)
+            startActivity(intent)
+        }
 
         //request runtime permission
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU){
@@ -178,6 +186,11 @@ class MainActivity : AppCompatActivity() {
             requestPermissions(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION), 102)
         }
 
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUserActiveStatus()
     }
 
     //avoid memory leaks for broadcast receiver
@@ -225,9 +238,18 @@ class MainActivity : AppCompatActivity() {
 
         Log.d("WIFI_TEST", "Current SSID: $ssid vs Target: $mySsid")
 
-        //compare current wifi against the stored firebase SSID
-        val isAtUni = if (mySsid.isNotEmpty()){
-            ssid == mySsid
+        //trap the android location security block
+        if (ssid == "<unknown_ssid>"){
+            Log.e("WIFI TEST", "Android is blocking SSID reading. Need Precise Location + GPS ON.")
+            Toast.makeText(this, "Turn on GPS/Precise Location to detect Campus Wi-Fi", Toast.LENGTH_SHORT).show()
+        }
+
+        //retrieve list of SSIDs matching the registered university
+        val allowedCampusSsids = getSsidsForUniversityId(mySsid)
+
+        //compare current wifi name against any entry verified in the matching array
+        val isAtUni = if (mySsid.isNotEmpty() && ssid != "<unknown ssid>"){
+            allowedCampusSsids.contains(ssid)
         }else {false}
 
         //determine final status based on mode
@@ -239,7 +261,20 @@ class MainActivity : AppCompatActivity() {
         //if status changed to TRUE and weren't online before, send notif
         if (finalStatus && !wasOnline){
             if(visibilityMode == 1 || visibilityMode == 2){
-                notifyBestBuddies()
+
+                //--COOLDOWN--
+                val prefs = getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                val lastNotifTime = prefs.getLong("LAST_NOTIF_TIME", 0L)
+                val now = System.currentTimeMillis()
+
+                //only notify if 60 minutes have passed since last notification
+                if (now - lastNotifTime > 3_600_000){
+                    notifyBestBuddies()
+                    //save the exact time we sent this notif
+                    prefs.edit().putLong("LAST_NOTIF_TIME", now).apply()
+                }else {
+                    Log.d("NOTIF_TEST", "Notification blocked! Still in the 1-hour cooldown period.")
+                }
             }
         }
 
@@ -247,10 +282,15 @@ class MainActivity : AppCompatActivity() {
         wasOnline = finalStatus
 
         //update firebase
-        val updates = mapOf(
+        val updates = mutableMapOf<String, Any>(
             "isActive" to finalStatus,
             "visibilityMode" to visibilityMode
         )
+
+        if (finalStatus){
+            updates["lastSeenOnCampus"] = System.currentTimeMillis()
+        }
+
         db.child(currentUserUid).updateChildren(updates)
 
         // Save my status locally so the Notification Service can check it
@@ -300,87 +340,6 @@ class MainActivity : AppCompatActivity() {
         popupMenu.show()
     }
 
-    private fun loadUpcomingLectures(){
-        val currentUid = FirebaseAuth.getInstance().uid ?: return
-
-        //listen to user's enrolled courses
-        db.child(currentUid).child("enrolledCourses")?.addValueEventListener(object: ValueEventListener{
-            override fun onDataChange(snapshot: DataSnapshot) {
-                upcomingList.clear()
-                val enrolledIds = mutableListOf<String>()
-
-                for (child in snapshot.children){
-                    child.key?.let {enrolledIds.add(it)}
-                }
-
-                if (enrolledIds.isEmpty()){
-                    tvNoCourses.visibility = View.VISIBLE
-                    rvUpcoming.visibility = View.GONE
-                } else {
-                    tvNoCourses.visibility = View.GONE
-                    rvUpcoming.visibility = View.VISIBLE
-
-                    calculateUpcomingLectures(enrolledIds)
-
-                    //schedule alarms
-                    CourseAlarmScheduler.scheduleAlarmsForCourses(this@MainActivity, enrolledIds.toSet())
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-        })
-    }
-
-    private fun calculateUpcomingLectures(enrolledIds: List<String>){
-        val now = System.currentTimeMillis()
-
-        //loop through enrolled courses
-        for (courseId in enrolledIds){
-            val course = CourseCatalog.allCourses.find { it.id == courseId } ?: continue
-
-            //loop through the schedule of each course
-            for (schedule in course.schedule){
-                val nextTime = getNextOccurrence(schedule.dayOfWeek, schedule.hour, schedule.minute)
-                upcomingList.add(UpcomingLectureItem(course.name, nextTime))
-            }
-        }
-        //sort by earliest first
-        upcomingList.sortBy { it.timestamp }
-        upcomingAdapter.notifyDataSetChanged()
-    }
-
-    //helper to calculate next class time
-    private fun getNextOccurrence(targetDay: Int, targetHour: Int, targetMinute: Int): Long{
-        val cal = Calendar.getInstance()
-        val currentDay = cal.get(Calendar.DAY_OF_WEEK) // sun=1, mon= 2...
-
-        //calculate difference
-        var daysDiff = targetDay - currentDay
-
-        //logic to handle scheduling
-        if (daysDiff < 0){
-            //day has passed this week, add 7 days to move to next
-            daysDiff += 7
-        } else if (daysDiff == 0){
-            //same day, check time
-            val currentHour = cal.get(Calendar.HOUR_OF_DAY)
-            val currentMin = cal.get(Calendar.MINUTE)
-
-            if (currentHour > targetHour || (currentHour == targetHour && currentMin >= targetMinute)){
-                //lecture finished for today, move to next week
-                daysDiff += 7
-            }
-        }
-
-        cal.add(Calendar.DAY_OF_YEAR, daysDiff)
-        cal.set(Calendar.HOUR_OF_DAY, targetHour)
-        cal.set(Calendar.MINUTE, targetMinute)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-
-        return cal.timeInMillis
-    }
-
     //navigation menu
     private fun setupBottomNav(){
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
@@ -412,22 +371,60 @@ class MainActivity : AppCompatActivity() {
 
     private fun notifyBestBuddies(){
         val currentUid = FirebaseAuth.getInstance().uid ?: return
-        val myName = FirebaseAuth.getInstance().currentUser?.displayName ?: "A Friend"
 
-        //look specifically at the bestBuddies node
-        db.child(currentUid).child("bestBuddies").addListenerForSingleValueEvent(object: ValueEventListener{
+        //scan all users to see who has subscribed to us
+        db.addListenerForSingleValueEvent(object: ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
-                //loop through UIDs in the bestBuddies list
-                for (child in snapshot.children){
-                    val friendUid = child.key ?: continue //key is userId
 
-                    //get friend's token
-                    FirebaseDatabase.getInstance().getReference("users").child(friendUid).child("fcmToken").get().addOnSuccessListener { tokenSnap ->
-                        val token = tokenSnap.value?.toString()
-                        if(!token.isNullOrEmpty()){
-                            //send status update
-                            Log.d("STATUS_NOTIF", "Found buddy to notify: $friendUid")
-                            sendStatusFcmMessage(token, myName, currentUid)
+                val myName = snapshot.child(currentUid).child("name").value?.toString() ?: "A Friend"
+                val myAvatar = snapshot.child(currentUid).child("avatar").value?.toString() ?: ""
+                //get our own best buddies list to check for mutual connections
+                val myBestBuddiesNode = snapshot.child(currentUid).child("bestBuddies")
+
+                //loop through database users
+                for (userSnap in snapshot.children){
+                    val otherUserId = userSnap.key ?: continue
+                    if (otherUserId == currentUid) continue
+
+                    //check if this user has ME in best buddies
+                    val theyAddedMe = userSnap.child("bestBuddies").hasChild(currentUid)
+                    if (theyAddedMe){
+                        var shouldNotify = false
+
+                        // --PRIVACY LOGIC--
+                        if (visibilityMode == 2){
+                            //Mode 2 (All): I am public. Anyone who added me gets the notif
+                            shouldNotify = true
+                        }else if (visibilityMode == 1){
+                            //Mode 1 (Best Buddies): I am private. Only notify mutual connections
+                            val iAddedThem = myBestBuddiesNode.hasChild(otherUserId)
+                            if (iAddedThem){
+                                shouldNotify = true
+                            }
+                        }
+
+                        //send the notif if they passed the privacy check
+                        if (shouldNotify){
+                            val token = userSnap.child("fcmToken").value?.toString()
+                            val timestamp = System.currentTimeMillis()
+
+                            val followerHistoryRef = db.child(otherUserId).child("notificationHistory").push()
+                            val statusNotif = AppNotification(
+                                id = followerHistoryRef.key ?: "",
+                                title = "UniBuddy",
+                                body = "$myName is now online!",
+                                type = "status",
+                                timestamp = timestamp,
+                                payloadId = currentUid, //pass ID so clicking the row opens user profile
+                                senderName = myName,
+                                senderAvatar = myAvatar
+                            )
+                            followerHistoryRef.setValue(statusNotif)
+
+                            if (!token.isNullOrEmpty()){
+                                Log.d("STATUS_NOTIF", "Found follower to notify: $otherUserId")
+                                sendStatusFcmMessage(token, myName, currentUid, myAvatar)
+                            }
                         }
                     }
                 }
@@ -437,7 +434,7 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun sendStatusFcmMessage(recipientToken: String, userName: String, myUid: String){
+    private fun sendStatusFcmMessage(recipientToken: String, userName: String, myUid: String, myAvatar: String){
         val projectId = "uni-buddy-it2021084"
         val fcmUrl = "https://fcm.googleapis.com/v1/projects/$projectId/messages:send"
 
@@ -449,6 +446,8 @@ class MainActivity : AppCompatActivity() {
             dataPayload.put("title", "UniBuddy")
             dataPayload.put("body", "$userName is now online!")
             dataPayload.put("userId", myUid)
+            dataPayload.put("senderName", userName)
+            dataPayload.put("senderAvatar", myAvatar)
 
             val messagePayload = JSONObject()
             messagePayload.put("token", recipientToken)

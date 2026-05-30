@@ -68,7 +68,7 @@
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:text="Send Message"
-        android:backgroundTint="@color/purple_200"
+        android:backgroundTint="#B87019"
         android:layout_marginBottom="12dp"/>
 
     <Button

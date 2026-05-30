@@ -20,6 +20,7 @@ class LoginActivity : ComponentActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
     private val RC_SIGN_IN = 9001
+    private val SECRETARY_EMAIL = "unibuddy.application@gmail.com"
 
     override fun onCreate(savedInstanceState: Bundle?){
 
@@ -27,6 +28,12 @@ class LoginActivity : ComponentActivity() {
         //checking if user is already signed it before loading UI
         val user = FirebaseAuth.getInstance().currentUser
         if(user != null){
+            //check if user is secretary
+            if(user.email == SECRETARY_EMAIL){
+                startSecretaryActivity()
+                return
+            }
+
             //check local cache, if SSID is saved locally > continue
             val prefs = getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
             val cachedSsid = prefs.getString("LOCAL_SSID", null)
@@ -67,7 +74,7 @@ class LoginActivity : ComponentActivity() {
                 }
             }
         }
-        testLoginButton.visibility = View.GONE
+        testLoginButton.visibility = View.VISIBLE
 
     }
 
@@ -103,6 +110,12 @@ class LoginActivity : ComponentActivity() {
                     Log.d("LoginActivity", "Firebase Auth successful")
                     val user = FirebaseAuth.getInstance().currentUser
                     Log.d("LoginActivity", "Signed in as: ${user?.email}")
+
+                    // intercept active Google authentication loop ---
+                    if (user?.email == SECRETARY_EMAIL) {
+                        startSecretaryActivity()
+                        return@addOnCompleteListener // Break execution immediately
+                    }
 
                     //initialize user in realtime database
                     val db = FirebaseDatabase.getInstance( "https://uni-buddy-it2021084-default-rtdb.europe-west1.firebasedatabase.app").reference.child("users")
@@ -171,6 +184,13 @@ class LoginActivity : ComponentActivity() {
         val intent = Intent(this, SettingsActivity::class.java)
         startActivity(intent)
         finish()
+    }
+
+    private fun startSecretaryActivity(){
+        val intent = Intent(this, SecretaryBroadcastActivity::class.java)
+        startActivity(intent)
+        finish()
+        overridePendingTransition(0,0)
     }
 
 

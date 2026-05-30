@@ -22,6 +22,15 @@ class LectureNotificationReceiver: BroadcastReceiver() {
 
         val courseName = intent?.getStringExtra("courseName") ?: "Class"
 
+        NotificationHistoryManager.saveNotificationToHistory(
+            title = "Upcoming Lecture",
+            body = "$courseName starts in 10 minutes!",
+            type = "lecture",
+            payloadId = "",
+            senderName = "Academic Schedule",
+            senderAvatar = "LECTURE_ICON"
+        )
+
         showNotification(context, courseName)
     }
 

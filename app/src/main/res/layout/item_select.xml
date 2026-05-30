@@ -16,6 +16,6 @@
         android:id="@+id/cbSelect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:buttonTint="@color/purple_200" />
+        android:buttonTint="#B87019" />
 
 </LinearLayout>

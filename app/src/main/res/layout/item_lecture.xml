@@ -25,7 +25,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="Monday, 09:00"
-        android:textColor="@color/purple_200"
+        android:textColor="#B87019"
         android:textSize="14sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
@@ -39,7 +39,7 @@
         app:layout_constraintBottom_toBottomOf="@+id/tvLectureTime"
         app:layout_constraintEnd_toStartOf="@+id/tvLectureTime"
         app:layout_constraintTop_toTopOf="@+id/tvLectureTime"
-        app:tint="@color/purple_200"
+        app:tint="#B87019"
         android:visibility="gone"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

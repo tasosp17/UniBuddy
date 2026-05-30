@@ -75,22 +75,23 @@
                 android:textAllCaps="false"
                 android:textSize="16sp"
                 app:cornerRadius="12dp"
-                android:backgroundTint="@color/purple_200"
+                android:backgroundTint="#B87019"
                 android:fontFamily="@font/poppins_semibold"/>
 
             <Button
                 android:id="@+id/btnContactFaculty"
-                android:layout_width="315dp"
-                android:layout_height="70dp"
-                android:layout_marginBottom="16dp"
-                android:fontFamily="@font/poppins_semibold"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:text="Contact Faculty / Staff"
-                android:textAllCaps="false"
+                android:padding="14dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="16dp"
                 android:textColor="@android:color/white"
+                android:textAllCaps="false"
                 android:textSize="16sp"
                 app:cornerRadius="12dp"
-                android:backgroundTint="@color/purple_200"
-                app:layout_constraintTop_toBottomOf="@+id/btnStartChat"/>
+                android:backgroundTint="#B87019"
+                android:fontFamily="@font/poppins_semibold"/>
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>

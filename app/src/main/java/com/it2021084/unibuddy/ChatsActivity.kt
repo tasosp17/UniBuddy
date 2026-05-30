@@ -301,7 +301,7 @@ class ChatsActivity: AppCompatActivity() {
     }
 
     private fun setupFilterButtons(){
-        val activeColor = getColor(R.color.purple_200)
+        val activeColor = android.graphics.Color.parseColor("#B87019")
         val inactiveColor = android.graphics.Color.parseColor("#E0E0E0")
         val activeText = android.graphics.Color.WHITE
         val inactiveText = android.graphics.Color.DKGRAY

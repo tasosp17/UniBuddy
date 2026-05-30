@@ -5,5 +5,7 @@ data class Message(
     var senderName:String = "",
     var senderAvatar:String? = null, //base64 string
     var message: String = "",
-    var timestamp: Long = 0L
+    var timestamp: Long = 0L,
+    var fileUrl: String? = null,
+    var fileType: String? = "text" // "text"/"image"/"pdf"
 )
