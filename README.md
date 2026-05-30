@@ -30,10 +30,14 @@ To run this project on your local machine, you will need to provide your own Fir
 
 SCREENSHOTS
 
-<img width="957" height="694" alt="image" src="https://github.com/user-attachments/assets/b8628981-4464-4b50-b2bc-e40839ab656d" />
-<img width="1065" height="690" alt="image" src="https://github.com/user-attachments/assets/b0f0998e-056b-45c4-a689-9b25564ae498" />
-<img width="1382" height="690" alt="image" src="https://github.com/user-attachments/assets/68dbeccc-6d1c-405d-b525-f283aa8c34f2" />
-<img width="1406" height="676" alt="image" src="https://github.com/user-attachments/assets/1f3a2a83-913a-4dbd-ba6d-ab23ad5e0cbc" />
+<img width="350" height="771" alt="image" src="https://github.com/user-attachments/assets/2bad55dc-5703-4227-ba11-646234d6a77a" />
+<img width="459" height="767" alt="image" src="https://github.com/user-attachments/assets/d0c46e15-5e57-47d0-8580-53a271edd678" />
+<img width="345" height="768" alt="image" src="https://github.com/user-attachments/assets/b497570c-35ae-4298-a962-fd6bd59210ca" />
+<img width="347" height="767" alt="image" src="https://github.com/user-attachments/assets/524a1c95-684c-4d63-b1a7-7e6fbfe612a5" />
+
+
+
+
 
 
 
