@@ -74,7 +74,7 @@ class LoginActivity : ComponentActivity() {
                 }
             }
         }
-        testLoginButton.visibility = View.VISIBLE
+        testLoginButton.visibility = View.GONE
 
     }
 
